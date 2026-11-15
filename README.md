@@ -197,7 +197,7 @@ To guarantee zero double-booking under high concurrent load across scaled applic
      { doctorId: 1, slotTime: 1 },
      {
        unique: true,
-       partialFilterExpression: { status: 'confirmed' }
+       partialFilterExpression: { status: 'confirmed' },
      }
    );
    ```
@@ -240,33 +240,35 @@ To guarantee zero double-booking under high concurrent load across scaled applic
   # docker-compose.yml
   app:
     expose:
-      - "3000" # Internal only, no host port mapping
+      - '3000' # Internal only, no host port mapping
   mongo:
     expose:
-      - "27017" # Internal only, no host port mapping
+      - '27017' # Internal only, no host port mapping
   nginx:
     ports:
-      - "80:80" # Exposed to host
-      - "443:443" # Exposed to host
+      - '80:80' # Exposed to host
+      - '443:443' # Exposed to host
   ```
 - **Service Health & Dependency Ordering:** Uses Docker Compose `depends_on` with `condition: service_healthy` so `hospital_app` starts only after `hospital_mongo` is healthy, and `hospital_nginx` starts only after `hospital_app` is healthy.
 
 ### 4.5 Database Least Privilege & Auth
 
 MongoDB is initialized with role-based authentication:
+
 - **Administrative Account:** `rootadmin` with `root` privileges on the `admin` database (used solely for maintenance and initial provisioning).
-- **Application Account:** `hospital_app` created via [mongo-init/01-init-mongo.js](file:///d:/cloudand%20devopsproject/mongo-init/01-init-mongo.js) with strictly scoped `readWrite` permissions on `hospital_db`:
+- **Application Account:** `hospital_app` created via [mongo-init/01-init-mongo.js](mongo-init/01-init-mongo.js) with strictly scoped `readWrite` permissions on `hospital_db`:
   ```javascript
   db.createUser({
     user: 'hospital_app',
     pwd: '...',
-    roles: [{ role: 'readWrite', db: 'hospital_db' }]
+    roles: [{ role: 'readWrite', db: 'hospital_db' }],
   });
   ```
 
 ### 4.6 CI/CD Pipeline (GitHub Actions)
 
-Located in [.github/workflows/ci.yml](file:///d:/cloudand%20devopsproject/.github/workflows/ci.yml):
+Located in [.github/workflows/ci.yml](./.github/workflows/ci.yml):
+
 1. **Trigger Matrix:** Runs on `push` to `main`, tags matching `v*`, and all pull requests to `main`.
 2. **Lint & Formatting Job:** Executes `npm run lint` (`eslint`) and `npm run format:check` (`prettier --check`).
 3. **Database Integration Tests:** Boots a live MongoDB 7 service container (`mongo:7.0.15`) with health checks, sets `MONGO_URI`, and runs the full Jest suite including the 10-client concurrency test.
@@ -301,33 +303,33 @@ Located in [.github/workflows/ci.yml](file:///d:/cloudand%20devopsproject/.githu
 
 ### Port Map
 
-| Component | Container Name | Host Port | Internal Port | Protocol | Public Access | Purpose |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Nginx (HTTP)** | `hospital_nginx` | `80` | `80` | TCP / HTTP | **Yes** | 301 Redirect to HTTPS |
-| **Nginx (HTTPS)** | `hospital_nginx` | `443` | `443` | TCP / TLS | **Yes** | TLS Termination & Reverse Proxy |
-| **Express API** | `hospital_app` | *None* | `3000` | TCP / HTTP | **No** (Internal) | Core Application API |
-| **MongoDB** | `hospital_mongo` | *None* | `27017` | TCP / Mongo | **No** (Internal) | Database Engine |
+| Component         | Container Name   | Host Port | Internal Port | Protocol    | Public Access     | Purpose                         |
+| :---------------- | :--------------- | :-------- | :------------ | :---------- | :---------------- | :------------------------------ |
+| **Nginx (HTTP)**  | `hospital_nginx` | `80`      | `80`          | TCP / HTTP  | **Yes**           | 301 Redirect to HTTPS           |
+| **Nginx (HTTPS)** | `hospital_nginx` | `443`     | `443`         | TCP / TLS   | **Yes**           | TLS Termination & Reverse Proxy |
+| **Express API**   | `hospital_app`   | _None_    | `3000`        | TCP / HTTP  | **No** (Internal) | Core Application API            |
+| **MongoDB**       | `hospital_mongo` | _None_    | `27017`       | TCP / Mongo | **No** (Internal) | Database Engine                 |
 
 ---
 
 ## 6. Environment Variables Reference
 
-Configuration is managed strictly through environment variables. Use [.env.example](file:///d:/cloudand%20devopsproject/.env.example) as the template:
+Configuration is managed strictly through environment variables. Use [.env.example](./.env.example) as the template:
 
-| Variable | Default Value | Required? | Description |
-| :--- | :--- | :--- | :--- |
-| `NODE_ENV` | `production` | No | Application environment (`production`, `development`, `test`) |
-| `PORT` | `3000` | No | Internal port for Express |
-| `MONGO_ROOT_USERNAME` | `rootadmin` | Yes | MongoDB administrative username |
-| `MONGO_ROOT_PASSWORD` | *(Set in .env)* | Yes | MongoDB administrative password |
-| `MONGO_APP_USERNAME` | `hospital_app` | Yes | Application least-privilege username |
-| `MONGO_APP_PASSWORD` | *(Set in .env)* | Yes | Application least-privilege password |
-| `MONGO_DATABASE` | `hospital_db` | Yes | Target database name |
-| `MONGO_URI` | *(Computed)* | Yes | Mongoose connection URI |
-| `JWT_SECRET` | *(Random 32+ chars)* | Yes | Symmetric secret key for signing JWTs |
-| `JWT_EXPIRES_IN` | `24h` | No | Token expiration duration |
-| `LOG_LEVEL` | `info` | No | Pino logging level (`debug`, `info`, `warn`, `error`) |
-| `ENABLE_METRICS` | `true` | No | Enable Prometheus exposition on `/metrics` |
+| Variable              | Default Value        | Required? | Description                                                   |
+| :-------------------- | :------------------- | :-------- | :------------------------------------------------------------ |
+| `NODE_ENV`            | `production`         | No        | Application environment (`production`, `development`, `test`) |
+| `PORT`                | `3000`               | No        | Internal port for Express                                     |
+| `MONGO_ROOT_USERNAME` | `rootadmin`          | Yes       | MongoDB administrative username                               |
+| `MONGO_ROOT_PASSWORD` | _(Set in .env)_      | Yes       | MongoDB administrative password                               |
+| `MONGO_APP_USERNAME`  | `hospital_app`       | Yes       | Application least-privilege username                          |
+| `MONGO_APP_PASSWORD`  | _(Set in .env)_      | Yes       | Application least-privilege password                          |
+| `MONGO_DATABASE`      | `hospital_db`        | Yes       | Target database name                                          |
+| `MONGO_URI`           | _(Computed)_         | Yes       | Mongoose connection URI                                       |
+| `JWT_SECRET`          | _(Random 32+ chars)_ | Yes       | Symmetric secret key for signing JWTs                         |
+| `JWT_EXPIRES_IN`      | `24h`                | No        | Token expiration duration                                     |
+| `LOG_LEVEL`           | `info`               | No        | Pino logging level (`debug`, `info`, `warn`, `error`)         |
+| `ENABLE_METRICS`      | `true`               | No        | Enable Prometheus exposition on `/metrics`                    |
 
 ---
 
@@ -341,7 +343,8 @@ Follow these exact steps from a freshly cloned workspace:
 # Copy template to .env (do not commit .env)
 cp .env.example .env
 ```
-*(On Windows PowerShell: `Copy-Item .env.example .env`)*
+
+_(On Windows PowerShell: `Copy-Item .env.example .env`)_
 
 ### Step 2: Generate Self-Signed TLS Certificates
 
@@ -353,6 +356,7 @@ chmod +x scripts/*.sh
 # On Windows PowerShell:
 .\scripts\gen-certs.ps1
 ```
+
 This generates `nginx/certs/server.key` and `nginx/certs/server.crt` with Subject Alternative Names for `localhost`.
 
 ### Step 3: Build & Launch Containers
@@ -373,6 +377,7 @@ docker compose exec app node scripts/seed.js
 ```
 
 Seeded test accounts available:
+
 - **Admin:** `admin@hospital.local` / `AdminPassword123!`
 - **Doctor:** `doctor.smith@hospital.local` / `DoctorPassword123!`
 - **Patient 1:** `patient.john@hospital.local` / `PatientPassword123!`
@@ -382,7 +387,7 @@ Seeded test accounts available:
 
 ## 8. API Verification Guide (curl Examples)
 
-*(Note: pass `-k` to trust the self-signed TLS certificate).*
+_(Note: pass `-k` to trust the self-signed TLS certificate)._
 
 ### 1. Health, Readiness & Metrics
 
@@ -410,6 +415,7 @@ curl -k -s -X POST https://localhost/auth/login \
 ```
 
 Save the `token` from the JSON response:
+
 ```bash
 export TOKEN="<PASTE_RETURNED_JWT_TOKEN>"
 ```
@@ -440,6 +446,7 @@ curl -k -i -X POST https://localhost/appointments \
 ### 5. Double-Booking Concurrency Conflict (HTTP 409 Conflict)
 
 Re-send the exact same booking request:
+
 ```bash
 curl -k -i -X POST https://localhost/appointments \
   -H "Authorization: Bearer $TOKEN" \
@@ -450,7 +457,9 @@ curl -k -i -X POST https://localhost/appointments \
     "reason": "Double-booking collision attempt"
   }'
 ```
+
 **Response:**
+
 ```json
 HTTP/1.1 409 Conflict
 Content-Type: application/json; charset=utf-8
@@ -477,7 +486,8 @@ curl -k -i -X PUT https://localhost/appointments/<APPOINTMENT_ID>/reschedule \
 curl -k -i -X POST https://localhost/appointments/<APPOINTMENT_ID>/cancel \
   -H "Authorization: Bearer $TOKEN"
 ```
-*(Cancelling sets status to `cancelled`, instantly releasing the slot in the partial unique index).*
+
+_(Cancelling sets status to `cancelled`, instantly releasing the slot in the partial unique index)._
 
 ---
 
@@ -485,16 +495,16 @@ curl -k -i -X POST https://localhost/appointments/<APPOINTMENT_ID>/cancel \
 
 Both Bash (`.sh`) and PowerShell (`.ps1`) variants are provided for cross-platform operations:
 
-| Action | Bash Command | PowerShell Command | Description |
-| :--- | :--- | :--- | :--- |
-| **Backup** | `./scripts/backup.sh` | `.\scripts\backup.ps1` | Creates gzip compressed dump under `backups/` |
-| **Restore** | `./scripts/restore.sh <FILE>` | `.\scripts\restore.ps1 <FILE>` | Drops collections and restores from archive |
-| **Deploy** | `./scripts/deploy.sh <TAG>` | `.\scripts\deploy.ps1 <TAG>` | Pulls tag, restarts compose, polls `/ready` |
-| **Rollback** | `./scripts/rollback.sh <TAG>` | `.\scripts\rollback.ps1 <TAG>` | Reverts image tag and validates health |
-| **Failure Drill**| `./scripts/failure_drill.sh` | `.\scripts\failure_drill.ps1` | Simulates Mongo & App outages and recovery |
-| **TLS Certs** | `./scripts/gen-certs.sh` | `.\scripts\gen-certs.ps1` | Generates self-signed certificates |
+| Action            | Bash Command                  | PowerShell Command             | Description                                   |
+| :---------------- | :---------------------------- | :----------------------------- | :-------------------------------------------- |
+| **Backup**        | `./scripts/backup.sh`         | `.\scripts\backup.ps1`         | Creates gzip compressed dump under `backups/` |
+| **Restore**       | `./scripts/restore.sh <FILE>` | `.\scripts\restore.ps1 <FILE>` | Drops collections and restores from archive   |
+| **Deploy**        | `./scripts/deploy.sh <TAG>`   | `.\scripts\deploy.ps1 <TAG>`   | Pulls tag, restarts compose, polls `/ready`   |
+| **Rollback**      | `./scripts/rollback.sh <TAG>` | `.\scripts\rollback.ps1 <TAG>` | Reverts image tag and validates health        |
+| **Failure Drill** | `./scripts/failure_drill.sh`  | `.\scripts\failure_drill.ps1`  | Simulates Mongo & App outages and recovery    |
+| **TLS Certs**     | `./scripts/gen-certs.sh`      | `.\scripts\gen-certs.ps1`      | Generates self-signed certificates            |
 
-*(For comprehensive incident response protocols and troubleshooting trees, refer to [docs/RUNBOOK.md](file:///d:/cloudand%20devopsproject/docs/RUNBOOK.md)).*
+_(For comprehensive incident response protocols and troubleshooting trees, refer to [docs/RUNBOOK.md](./docs/RUNBOOK.md))._
 
 ---
 
@@ -503,22 +513,26 @@ Both Bash (`.sh`) and PowerShell (`.ps1`) variants are provided for cross-platfo
 To push this repository to GitHub and run the automated GitHub Actions CI/CD pipeline:
 
 ### Step 1: Create GitHub Repository
+
 Create a new, empty repository on [GitHub](https://github.com/new) named `hospital-management-platform` (do not initialize with README or license).
 
 ### Step 2: Grant Workflow Permissions
+
 1. Navigate to your repository's **Settings** > **Actions** > **General**.
 2. Scroll to **Workflow permissions**.
 3. Select **"Read and write permissions"** (enables GHCR package publishing).
 4. Click **Save**.
 
 ### Step 3: Push Local Branch
+
 ```bash
 git remote add origin https://github.com/<YOUR_GITHUB_USERNAME>/hospital-management-platform.git
 git branch -M main
 git push -u origin main
 ```
 
-*(Optional: Push a release tag to trigger semver container image publishing)*:
+_(Optional: Push a release tag to trigger semver container image publishing)_:
+
 ```bash
 git tag v1.0.0
 git push origin v1.0.0
@@ -528,31 +542,31 @@ git push origin v1.0.0
 
 ## 11. Empirical Evidence & Acceptance Checklist
 
-All operational verifications were conducted live against the containerized platform and stored in the [evidence/](file:///d:/cloudand%20devopsproject/evidence/) directory:
+All operational verifications were conducted live against the containerized platform and stored in the [evidence/](./evidence/) directory:
 
-| Requirement / Milestone | Satisfying File(s) | Evidence Artifact | Verification Status |
-| :--- | :--- | :--- | :--- |
-| **GET /health & GET /ready (503 on DB disconnect)** | [src/routes/health.js](file:///d:/cloudand%20devopsproject/src/routes/health.js), [src/db.js](file:///d:/cloudand%20devopsproject/src/db.js) | [failure-recovery-transcript.txt](file:///d:/cloudand%20devopsproject/evidence/failure-recovery-transcript.txt) | **Verified** |
-| **JWT Authentication & RBAC (Admin/Doctor/Patient)** | [src/middleware/auth.js](file:///d:/cloudand%20devopsproject/src/middleware/auth.js), [src/routes/auth.js](file:///d:/cloudand%20devopsproject/src/routes/auth.js) | [test-output.txt](file:///d:/cloudand%20devopsproject/evidence/test-output.txt) | **Verified** |
-| **Patient Appointment Isolation (403 on Cross-Access)**| [src/middleware/auth.js](file:///d:/cloudand%20devopsproject/src/middleware/auth.js), [src/routes/appointments.js](file:///d:/cloudand%20devopsproject/src/routes/appointments.js) | [test-output.txt](file:///d:/cloudand%20devopsproject/evidence/test-output.txt) | **Verified** |
-| **Doctor Availability & 30-min Slot Engine** | [src/services/slotValidator.js](file:///d:/cloudand%20devopsproject/src/services/slotValidator.js), [src/routes/doctors.js](file:///d:/cloudand%20devopsproject/src/routes/doctors.js) | [test-output.txt](file:///d:/cloudand%20devopsproject/evidence/test-output.txt) | **Verified** |
-| **Concurrency Lock (10 Parallel Bookings -> 1x 201, 9x 409)**| [src/models/Appointment.js](file:///d:/cloudand%20devopsproject/src/models/Appointment.js), [src/middleware/errorHandler.js](file:///d:/cloudand%20devopsproject/src/middleware/errorHandler.js) | [concurrency-test-output.txt](file:///d:/cloudand%20devopsproject/evidence/concurrency-test-output.txt) | **Verified** |
-| **Reschedule Conflict Handling (11000 -> 409)** | [src/routes/appointments.js](file:///d:/cloudand%20devopsproject/src/routes/appointments.js) | [test-output.txt](file:///d:/cloudand%20devopsproject/evidence/test-output.txt) | **Verified** |
-| **Audit Events Trail (Login, Book, Reschedule, Cancel)**| [src/models/AuditEvent.js](file:///d:/cloudand%20devopsproject/src/models/AuditEvent.js), [src/services/auditService.js](file:///d:/cloudand%20devopsproject/src/services/auditService.js) | [backup-restore-transcript.txt](file:///d:/cloudand%20devopsproject/evidence/backup-restore-transcript.txt) | **Verified** |
-| **Synthetic Data Seed Script (Zero Real Data)** | [scripts/seed.js](file:///d:/cloudand%20devopsproject/scripts/seed.js) | [backup-restore-transcript.txt](file:///d:/cloudand%20devopsproject/evidence/backup-restore-transcript.txt) | **Verified** |
-| **Structured JSON Logging & X-Request-Id Tracing** | [src/logger.js](file:///d:/cloudand%20devopsproject/src/logger.js) | Live curl & container logs | **Verified** |
-| **Prometheus /metrics Endpoint** | [src/metrics.js](file:///d:/cloudand%20devopsproject/src/metrics.js), [src/routes/health.js](file:///d:/cloudand%20devopsproject/src/routes/health.js) | Live curl `/metrics` | **Verified** |
-| **Multi-Stage Dockerfile (Alpine, Non-Root)** | [Dockerfile](file:///d:/cloudand%20devopsproject/Dockerfile), [.dockerignore](file:///d:/cloudand%20devopsproject/.dockerignore) | [image-digest.txt](file:///d:/cloudand%20devopsproject/evidence/image-digest.txt) | **Verified** |
-| **Docker Compose Architecture & Network Isolation** | [docker-compose.yml](file:///d:/cloudand%20devopsproject/docker-compose.yml) | [docker-compose-ps.txt](file:///d:/cloudand%20devopsproject/evidence/docker-compose-ps.txt) | **Verified** |
-| **MongoDB Least Privilege Authentication** | [mongo-init/01-init-mongo.js](file:///d:/cloudand%20devopsproject/mongo-init/01-init-mongo.js) | Verified during stack initialization | **Verified** |
-| **Nginx Reverse Proxy & TLS (Port 80 -> 443 Redirect)** | [nginx/nginx.conf](file:///d:/cloudand%20devopsproject/nginx/nginx.conf), [scripts/gen-certs.sh](file:///d:/cloudand%20devopsproject/scripts/gen-certs.sh) | Live curl HTTP 301 & HTTPS 200 | **Verified** |
-| **Zero Committed Secrets & Strict .gitignore** | [.env.example](file:///d:/cloudand%20devopsproject/.env.example), [.gitignore](file:///d:/cloudand%20devopsproject/.gitignore) | Git tree clean, zero secrets committed | **Verified** |
-| **CI/CD Pipeline (Lint, Test, Audit, Trivy, GHCR)** | [.github/workflows/ci.yml](file:///d:/cloudand%20devopsproject/.github/workflows/ci.yml) | Automated workflow definition | **Verified** |
-| **Deployment with /ready Health Polling** | [scripts/deploy.sh](file:///d:/cloudand%20devopsproject/scripts/deploy.sh), [scripts/deploy.ps1](file:///d:/cloudand%20devopsproject/scripts/deploy.ps1) | Verified deployment loop | **Verified** |
-| **Backup & Drop-and-Restore Disaster Recovery** | [scripts/backup.sh](file:///d:/cloudand%20devopsproject/scripts/backup.sh), [scripts/restore.sh](file:///d:/cloudand%20devopsproject/scripts/restore.sh) | [backup-restore-transcript.txt](file:///d:/cloudand%20devopsproject/evidence/backup-restore-transcript.txt) | **Verified** |
-| **Rollback Automation** | [scripts/rollback.sh](file:///d:/cloudand%20devopsproject/scripts/rollback.sh), [scripts/rollback.ps1](file:///d:/cloudand%20devopsproject/scripts/rollback.ps1) | Verified image tag switch | **Verified** |
-| **Failure Simulation Drill (503 & 502/504 Recovery)** | [scripts/failure_drill.sh](file:///d:/cloudand%20devopsproject/scripts/failure_drill.sh), [scripts/failure_drill.ps1](file:///d:/cloudand%20devopsproject/scripts/failure_drill.ps1) | [failure-recovery-transcript.txt](file:///d:/cloudand%20devopsproject/evidence/failure-recovery-transcript.txt) | **Verified** |
-| **Comprehensive Documentation Suite** | [README.md](file:///d:/cloudand%20devopsproject/README.md), [docs/RUNBOOK.md](file:///d:/cloudand%20devopsproject/docs/RUNBOOK.md), [docs/architecture.md](file:///d:/cloudand%20devopsproject/docs/architecture.md), [docs/DEMO_SCRIPT.md](file:///d:/cloudand%20devopsproject/docs/DEMO_SCRIPT.md), [docs/AI_USAGE.md](file:///d:/cloudand%20devopsproject/docs/AI_USAGE.md) | Full documentation suite | **Verified** |
+| Requirement / Milestone                                       | Satisfying File(s)                                                                                                                                                                                   | Evidence Artifact                                                             | Verification Status |
+| :------------------------------------------------------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------- | :------------------ |
+| **GET /health & GET /ready (503 on DB disconnect)**           | [src/routes/health.js](./src/routes/health.js), [src/db.js](./src/db.js)                                                                                                                             | [failure-recovery-transcript.txt](./evidence/failure-recovery-transcript.txt) | **Verified**        |
+| **JWT Authentication & RBAC (Admin/Doctor/Patient)**          | [src/middleware/auth.js](./src/middleware/auth.js), [src/routes/auth.js](./src/routes/auth.js)                                                                                                       | [test-output.txt](./evidence/test-output.txt)                                 | **Verified**        |
+| **Patient Appointment Isolation (403 on Cross-Access)**       | [src/middleware/auth.js](./src/middleware/auth.js), [src/routes/appointments.js](./src/routes/appointments.js)                                                                                       | [test-output.txt](./evidence/test-output.txt)                                 | **Verified**        |
+| **Doctor Availability & 30-min Slot Engine**                  | [src/services/slotValidator.js](./src/services/slotValidator.js), [src/routes/doctors.js](./src/routes/doctors.js)                                                                                   | [test-output.txt](./evidence/test-output.txt)                                 | **Verified**        |
+| **Concurrency Lock (10 Parallel Bookings -> 1x 201, 9x 409)** | [src/models/Appointment.js](./src/models/Appointment.js), [src/middleware/errorHandler.js](./src/middleware/errorHandler.js)                                                                         | [concurrency-test-output.txt](./evidence/concurrency-test-output.txt)         | **Verified**        |
+| **Reschedule Conflict Handling (11000 -> 409)**               | [src/routes/appointments.js](./src/routes/appointments.js)                                                                                                                                           | [test-output.txt](./evidence/test-output.txt)                                 | **Verified**        |
+| **Audit Events Trail (Login, Book, Reschedule, Cancel)**      | [src/models/AuditEvent.js](./src/models/AuditEvent.js), [src/services/auditService.js](./src/services/auditService.js)                                                                               | [backup-restore-transcript.txt](./evidence/backup-restore-transcript.txt)     | **Verified**        |
+| **Synthetic Data Seed Script (Zero Real Data)**               | [scripts/seed.js](./scripts/seed.js)                                                                                                                                                                 | [backup-restore-transcript.txt](./evidence/backup-restore-transcript.txt)     | **Verified**        |
+| **Structured JSON Logging & X-Request-Id Tracing**            | [src/logger.js](./src/logger.js)                                                                                                                                                                     | Live curl & container logs                                                    | **Verified**        |
+| **Prometheus /metrics Endpoint**                              | [src/metrics.js](./src/metrics.js), [src/routes/health.js](./src/routes/health.js)                                                                                                                   | Live curl `/metrics`                                                          | **Verified**        |
+| **Multi-Stage Dockerfile (Alpine, Non-Root)**                 | [Dockerfile](./Dockerfile), [.dockerignore](./.dockerignore)                                                                                                                                         | [image-digest.txt](./evidence/image-digest.txt)                               | **Verified**        |
+| **Docker Compose Architecture & Network Isolation**           | [docker-compose.yml](./docker-compose.yml)                                                                                                                                                           | [docker-compose-ps.txt](./evidence/docker-compose-ps.txt)                     | **Verified**        |
+| **MongoDB Least Privilege Authentication**                    | [mongo-init/01-init-mongo.js](./mongo-init/01-init-mongo.js)                                                                                                                                         | Verified during stack initialization                                          | **Verified**        |
+| **Nginx Reverse Proxy & TLS (Port 80 -> 443 Redirect)**       | [nginx/nginx.conf](./nginx/nginx.conf), [scripts/gen-certs.sh](./scripts/gen-certs.sh)                                                                                                               | Live curl HTTP 301 & HTTPS 200                                                | **Verified**        |
+| **Zero Committed Secrets & Strict .gitignore**                | [.env.example](./.env.example), [.gitignore](./.gitignore)                                                                                                                                           | Git tree clean, zero secrets committed                                        | **Verified**        |
+| **CI/CD Pipeline (Lint, Test, Audit, Trivy, GHCR)**           | [.github/workflows/ci.yml](./.github/workflows/ci.yml)                                                                                                                                               | Automated workflow definition                                                 | **Verified**        |
+| **Deployment with /ready Health Polling**                     | [scripts/deploy.sh](./scripts/deploy.sh), [scripts/deploy.ps1](./scripts/deploy.ps1)                                                                                                                 | Verified deployment loop                                                      | **Verified**        |
+| **Backup & Drop-and-Restore Disaster Recovery**               | [scripts/backup.sh](./scripts/backup.sh), [scripts/restore.sh](./scripts/restore.sh)                                                                                                                 | [backup-restore-transcript.txt](./evidence/backup-restore-transcript.txt)     | **Verified**        |
+| **Rollback Automation**                                       | [scripts/rollback.sh](./scripts/rollback.sh), [scripts/rollback.ps1](./scripts/rollback.ps1)                                                                                                         | Verified image tag switch                                                     | **Verified**        |
+| **Failure Simulation Drill (503 & 502/504 Recovery)**         | [scripts/failure_drill.sh](./scripts/failure_drill.sh), [scripts/failure_drill.ps1](./scripts/failure_drill.ps1)                                                                                     | [failure-recovery-transcript.txt](./evidence/failure-recovery-transcript.txt) | **Verified**        |
+| **Comprehensive Documentation Suite**                         | [README.md](./README.md), [docs/RUNBOOK.md](./docs/RUNBOOK.md), [docs/architecture.md](./docs/architecture.md), [docs/DEMO_SCRIPT.md](./docs/DEMO_SCRIPT.md), [docs/AI_USAGE.md](./docs/AI_USAGE.md) | Full documentation suite                                                      | **Verified**        |
 
 ---
 
