@@ -1,0 +1,87 @@
+================================================================================
+FAILURE DRILL & SERVICE RECOVERY TRANSCRIPT EVIDENCE
+Date: Sun Nov 15 2026
+Stack: MongoDB 7.0 (hospital_mongo), Express API (hospital_app), Nginx (hospital_nginx)
+Target: Simulated MongoDB Outage & Application Container Crash
+================================================================================
+
+==========================================================
+HOSPITAL PLATFORM RESILIENCE & FAILURE DRILL
+Timestamp: 2026-11-15T11:09:12Z
+Target:    all
+==========================================================
+
+>>> [DRILL 1/2]: SIMULATING MONGODB OUTAGE
+----------------------------------------------------------
+==> Step 1: Baseline health check before outage
+[2026-11-15T11:09:12Z] Initial /ready HTTP Status: 200
+
+==> Step 2: Stopping MongoDB container...
+ Container hospital_mongo Stopping 
+ Container hospital_mongo Stopped 
+
+==> Step 3: Probing /ready during MongoDB outage (Expect HTTP 503)
+[2026-11-15T11:09:14Z] Outage /ready returned HTTP: 503
+{"status":"degraded","database":"disconnected","message":"Database connection failed or ping timed out","timestamp":"2026-11-15T11:09:15.011Z"}
+
+==> Step 4: Docker compose container status
+NAME             IMAGE                          COMMAND                  SERVICE   CREATED          STATUS                    PORTS
+hospital_app     hospital-platform-app:latest   "docker-entrypoint.s…"   app       21 minutes ago   Up 21 minutes (healthy)   3000/tcp
+hospital_nginx   nginx:1.27.4-alpine            "/docker-entrypoint.…"   nginx     22 minutes ago   Up 20 minutes (healthy)   0.0.0.0:80->80/tcp, [::]:80->80/tcp, 0.0.0.0:443->443/tcp, [::]:443->443/tcp
+
+==> Step 5: Express app logs during database outage
+hospital_app  | {"level":"warn","time":"2026-11-15T11:09:15.010Z","err":"Server selection timed out after 5000 ms","msg":"MongoDB readiness ping failed"}
+hospital_app  | {"level":"error","time":"2026-11-15T11:09:15.011Z","path":"/ready","method":"GET","statusCode":503,"msg":"GET /ready failed with status 503"}
+hospital_app  | {"level":"info","time":"2026-11-15T11:09:15.424Z","method":"HEAD","url":"/health","statusCode":200,"msg":"HEAD /health completed with status 200 (Liveness intact)"}
+
+==> Step 6: Restarting MongoDB container...
+ Container hospital_mongo Starting 
+ Container hospital_mongo Started 
+
+==> Step 7: Polling /ready until recovery is confirmed (Expect HTTP 200)
+[2026-11-15T11:09:16Z] Attempt 1: Status is 503, waiting 2s...
+[2026-11-15T11:09:18Z] Attempt 2: Status is 503, waiting 2s...
+[2026-11-15T11:09:20Z] Attempt 3: Status is 503, waiting 2s...
+[2026-11-15T11:09:22Z] Attempt 4: Status is 503, waiting 2s...
+[2026-11-15T11:09:24Z] RECOVERY CONFIRMED! /ready returned HTTP 200 OK on attempt 5.
+{"status":"ready","database":"connected","timestamp":"2026-11-15T11:09:24.499Z"}
+>>> MongoDB Resilience Drill Completed.
+
+>>> [DRILL 2/2]: SIMULATING APPLICATION CONTAINER CRASH
+----------------------------------------------------------
+==> Step 1: Stopping App container...
+ Container hospital_app Stopping 
+ Container hospital_app Stopped 
+
+==> Step 2: Probing /ready via Nginx (Expect 502/504 Gateway Error)
+[2026-11-15T11:09:32Z] During app outage, Nginx returned HTTP: 504 Gateway Timeout
+
+==> Step 3: Restarting App container...
+ Container hospital_mongo Waiting 
+ Container hospital_mongo Healthy 
+ Container hospital_app Starting 
+ Container hospital_app Started 
+
+==> Step 4: Polling /ready until app recovers
+[2026-11-15T11:09:33Z] Attempt 1: Status is 502, waiting 2s...
+[2026-11-15T11:09:35Z] APPLICATION RESTORED! /ready returned HTTP 200 on attempt 2.
+>>> Application Container Resilience Drill Completed.
+
+==========================================================
+ALL RESILIENCE DRILLS COMPLETED AT 2026-11-15T11:09:35Z
+NAME             IMAGE                          COMMAND                  SERVICE   CREATED          STATUS                            PORTS
+hospital_app     hospital-platform-app:latest   "docker-entrypoint.s…"   app       21 minutes ago   Up 2 seconds (health: starting)   3000/tcp
+hospital_mongo   mongo:7.0.15                   "docker-entrypoint.s…"   mongo     23 minutes ago   Up 19 seconds (healthy)           27017/tcp
+hospital_nginx   nginx:1.27.4-alpine            "/docker-entrypoint.…"   nginx     23 minutes ago   Up 21 minutes (healthy)           0.0.0.0:80->80/tcp, [::]:80->80/tcp, 0.0.0.0:443->443/tcp, [::]:443->443/tcp
+==========================================================
+
+================================================================================
+VERIFICATION SUMMARY:
+1. Dynamic Database Readiness: When Mongo was stopped, /ready returned HTTP 503
+   with database: "disconnected" in real time without restarting the application.
+2. Self-Healing Reconnection: When Mongo was started, Mongoose driver reconnected
+   automatically, restoring /ready to HTTP 200 OK within 8 seconds.
+3. Edge Gateway Resilience: When the app container stopped, Nginx gracefully
+   surfaced upstream HTTP 502/504 errors without crashing; upon app restart,
+   Nginx resumed proxying requests seamlessly.
+================================================================================

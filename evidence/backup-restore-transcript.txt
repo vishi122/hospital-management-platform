@@ -1,0 +1,69 @@
+================================================================================
+DISASTER RECOVERY & BACKUP/RESTORE TRANSCRIPT EVIDENCE
+Date: Sun Nov 15 2026
+Stack: MongoDB 7.0 (hospital_mongo container)
+Command: mongodump --archive --gzip -> data drop -> mongorestore --drop
+================================================================================
+
+=== 1. DOCUMENT COUNTS BEFORE BACKUP ===
+Users:        7
+Doctors:      4
+Appointments: 1
+AuditEvents:  1
+
+=== 2. CREATING GZIP ARCHIVE BACKUP ===
+2026-11-15T11:06:32.255+0000	writing hospital_db.auditevents to archive '/tmp/mongo_backup.gz'
+2026-11-15T11:06:32.255+0000	writing hospital_db.doctors to archive '/tmp/mongo_backup.gz'
+2026-11-15T11:06:32.258+0000	writing hospital_db.appointments to archive '/tmp/mongo_backup.gz'
+2026-11-15T11:06:32.262+0000	done dumping hospital_db.auditevents (1 document)
+2026-11-15T11:06:32.262+0000	writing hospital_db.users to archive '/tmp/mongo_backup.gz'
+2026-11-15T11:06:32.262+0000	done dumping hospital_db.appointments (1 document)
+2026-11-15T11:06:32.262+0000	done dumping hospital_db.doctors (4 documents)
+2026-11-15T11:06:32.265+0000	done dumping hospital_db.users (7 documents)
+Copied backup to host: 1966 bytes (backups/mongo_backup_verified.gz)
+
+=== 3. DELETING DATA (SIMULATING CATASTROPHIC DATA LOSS) ===
+db.getSiblingDB('hospital_db').users.deleteMany({});
+db.getSiblingDB('hospital_db').doctors.deleteMany({});
+db.getSiblingDB('hospital_db').appointments.deleteMany({});
+db.getSiblingDB('hospital_db').auditevents.deleteMany({});
+
+Users after drop:        0
+Doctors after drop:      0
+Appointments after drop: 0
+AuditEvents after drop:  0
+
+=== 4. RESTORING DATABASE FROM ARCHIVE (mongorestore --drop) ===
+2026-11-15T11:06:34.217+0000	preparing collections to restore from
+2026-11-15T11:06:34.227+0000	reading metadata for hospital_db.appointments from archive '/tmp/restore_backup.gz'
+2026-11-15T11:06:34.228+0000	reading metadata for hospital_db.auditevents from archive '/tmp/restore_backup.gz'
+2026-11-15T11:06:34.228+0000	reading metadata for hospital_db.doctors from archive '/tmp/restore_backup.gz'
+2026-11-15T11:06:34.228+0000	reading metadata for hospital_db.users from archive '/tmp/restore_backup.gz'
+2026-11-15T11:06:34.231+0000	dropping collection hospital_db.auditevents before restoring
+2026-11-15T11:06:34.273+0000	restoring hospital_db.auditevents from archive '/tmp/restore_backup.gz'
+2026-11-15T11:06:34.287+0000	finished restoring hospital_db.auditevents (1 document, 0 failures)
+2026-11-15T11:06:34.287+0000	dropping collection hospital_db.doctors before restoring
+2026-11-15T11:06:34.311+0000	restoring hospital_db.doctors from archive '/tmp/restore_backup.gz'
+2026-11-15T11:06:34.322+0000	finished restoring hospital_db.doctors (4 documents, 0 failures)
+2026-11-15T11:06:34.324+0000	dropping collection hospital_db.appointments before restoring
+2026-11-15T11:06:34.350+0000	restoring hospital_db.appointments from archive '/tmp/restore_backup.gz'
+2026-11-15T11:06:34.361+0000	finished restoring hospital_db.appointments (1 document, 0 failures)
+2026-11-15T11:06:34.361+0000	dropping collection hospital_db.users before restoring
+2026-11-15T11:06:34.386+0000	restoring hospital_db.users from archive '/tmp/restore_backup.gz'
+2026-11-15T11:06:34.397+0000	finished restoring hospital_db.users (7 documents, 0 failures)
+2026-11-15T11:06:34.397+0000	restoring indexes for collection hospital_db.appointments from metadata
+2026-11-15T11:06:34.397+0000	index: &idx.IndexDocument{Options:primitive.M{"background":true, "name":"unique_confirmed_doctor_slot", "unique":true, "v":2}, Key:primitive.D{primitive.E{Key:"doctorId", Value:1}, primitive.E{Key:"slotTime", Value:1}}, PartialFilterExpression:primitive.D{primitive.E{Key:"status", Value:"confirmed"}}}
+2026-11-15T11:06:34.725+0000	13 document(s) restored successfully. 0 document(s) failed to restore.
+
+=== 5. DOCUMENT COUNTS AFTER RESTORE ===
+Users:        7
+Doctors:      4
+Appointments: 1
+AuditEvents:  1
+
+================================================================================
+VERIFICATION RESULT:
+Complete 100% data recovery verified.
+All document counts and schema indexes (including partial unique constraints)
+restored with 0 failures.
+================================================================================

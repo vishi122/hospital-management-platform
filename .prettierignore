@@ -1,0 +1,7 @@
+node_modules/
+coverage/
+backups/
+evidence/
+nginx/certs/
+package-lock.json
+.git/

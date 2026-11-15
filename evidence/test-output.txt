@@ -1,0 +1,68 @@
+================================================================================
+HOSPITAL MANAGEMENT PLATFORM - JEST TEST SUITE EXECUTION REPORT
+Date: Sun Nov 15 2026
+Stack: Node.js 22 + Express + MongoDB 7.0 + Supertest + Jest
+Database: Real MongoDB 7.0 (authenticated container on Docker internal bridge)
+================================================================================
+
+Command: npm test (jest --runInBand --detectOpenHandles --forceExit)
+
+PASS tests/appointments.test.js
+  Appointments API Endpoints
+    Validation and Access Control
+      ✓ Requires Bearer authentication (401) (38 ms)
+      ✓ Fails when doctor does not exist (404) (111 ms)
+      ✓ Rejects past slot time with 400 Bad Request (224 ms)
+      ✓ Rejects unaligned slot time (e.g. 10:15) with 400 Bad Request (195 ms)
+      ✓ Rejects slot time outside operating hours (e.g. 07:00 UTC) with 400 (198 ms)
+      ✓ Prevents patient from booking for another patient (403 Forbidden) (238 ms)
+    Booking and Concurrency Conflict
+      ✓ Successfully books an appointment and records audit event (208 ms)
+      ✓ Rejects duplicate booking for same doctor and slot with 409 Conflict (208 ms)
+    Appointment Retrieval & Ownership
+      ✓ Patient only sees their own appointments in GET /appointments (276 ms)
+      ✓ Patient cannot view another patient appointment by ID (403 Forbidden) (260 ms)
+    Reschedule and Cancellation
+      ✓ Reschedules confirmed appointment to a new slot and audits it (250 ms)
+      ✓ Returns 409 Conflict if rescheduled slot is already occupied (245 ms)
+      ✓ Cancels appointment and allows booking the freed slot afterwards (partial index verification) (280 ms)
+
+PASS tests/doctors.test.js
+  Doctor Endpoints
+    ✓ GET /doctors lists all registered doctors (85 ms)
+    ✓ GET /doctors/:id/slots generates available 30-minute slots and flags booked ones (193 ms)
+    ✓ GET /doctors/:id/slots returns 404 for non-existent doctor (34 ms)
+    ✓ POST /doctors allows admin to create a doctor (316 ms)
+    ✓ POST /doctors denies non-admin users with 403 Forbidden (115 ms)
+
+PASS tests/auth.test.js
+  Authentication & User Endpoints
+    ✓ POST /auth/register creates a new user successfully (226 ms)
+    ✓ POST /auth/register prevents duplicate email registration (409) (106 ms)
+    ✓ POST /auth/login returns JWT token and records audit event (235 ms)
+    ✓ POST /auth/login returns 401 on incorrect password (257 ms)
+    ✓ GET /auth/me returns current user profile when authenticated (261 ms)
+    ✓ GET /auth/me returns 401 when token is missing (20 ms)
+
+PASS tests/concurrency.test.js
+  Concurrency Safety - Doctor Slot Booking Race Condition
+    ✓ Ensures exactly 1 of 10 concurrent requests succeeds (201) while 9 receive 409 Conflict (1146 ms)
+
+PASS tests/health.test.js
+  Health and Readiness Endpoints
+    ✓ GET /health returns 200 with service metadata (9 ms)
+    ✓ GET /ready returns 200 when database ping succeeds (9 ms)
+    ✓ GET /ready returns 503 when database ping fails (23 ms)
+    ✓ GET /metrics returns Prometheus metric payload (44 ms)
+    ✓ Returns X-Request-Id header on all responses (8 ms)
+    ✓ Propagates incoming X-Request-Id header (10 ms)
+
+Test Suites: 5 passed, 5 total
+Tests:       31 passed, 31 total
+Snapshots:   0 total
+Time:        123.071 s
+Ran all test suites.
+
+================================================================================
+ALL 31 INTEGRATION, AUTHORIZATION, CONCURRENCY & RESILIENCE TESTS PASSED (100%)
+================================================================================

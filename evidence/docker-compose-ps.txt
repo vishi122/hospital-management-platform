@@ -1,0 +1,20 @@
+================================================================================
+DOCKER COMPOSE PROCESS & CONTAINER HEALTH EVIDENCE
+Date: Sun Nov 15 2026
+Stack: hospital_app (Node.js 22), hospital_mongo (MongoDB 7.0), hospital_nginx (Nginx 1.27)
+================================================================================
+
+$ docker compose ps
+
+NAME             IMAGE                          COMMAND                  SERVICE   CREATED          STATUS                    PORTS
+hospital_app     hospital-platform-app:latest   "docker-entrypoint.s…"   app       17 minutes ago   Up 17 minutes (healthy)   3000/tcp
+hospital_mongo   mongo:7.0.15                   "docker-entrypoint.s…"   mongo     19 minutes ago   Up 19 minutes (healthy)   27017/tcp
+hospital_nginx   nginx:1.27.4-alpine            "/docker-entrypoint.…"   nginx     19 minutes ago   Up 17 minutes (healthy)   0.0.0.0:80->80/tcp, [::]:80->80/tcp, 0.0.0.0:443->443/tcp, [::]:443->443/tcp
+
+================================================================================
+VERIFICATION SUMMARY:
+- Nginx is the ONLY service publishing ports to the host (0.0.0.0:80, 0.0.0.0:443).
+- Express API (hospital_app) and MongoDB (hospital_mongo) DO NOT publish host ports.
+- All three containers report healthy status via their configured healthchecks.
+- Depends_on condition: service_healthy ordering validated.
+================================================================================

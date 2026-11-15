@@ -1,0 +1,40 @@
+================================================================================
+DOCKER IMAGE TAG & DIGEST EVIDENCE
+Hospital Management Platform - Container Image
+================================================================================
+Date: Sun Nov 15 2026
+Image Name: hospital-platform-app:latest
+Docker Target: production
+
+REPOSITORY              TAG       DIGEST                                                                    IMAGE ID       CREATED          SIZE
+hospital-platform-app   latest    sha256:1d553c24711877da0b698059877bbd88d6aecca1762e6f2881c44740793e747e   1d553c247118   22 minutes ago   263MB
+
+Detailed Inspection:
+- Image ID: sha256:1d553c24711877da0b698059877bbd88d6aecca1762e6f2881c44740793e747e
+- Base Image: node:22.14.0-alpine3.21
+- Architecture: amd64
+- OS: linux
+- User: node (UID 1000, non-root)
+- Working Directory: /usr/src/app
+- Exposed Ports: 3000 (Internal only, not published to host)
+- Entrypoint: ["dumb-init", "--"]
+- Cmd: ["node", "src/server.js"]
+- Healthcheck: Interval 15s, Timeout 5s, Retries 3, StartPeriod 10s
+  CMD: wget -q -O - http://127.0.0.1:3000/health || exit 1
+
+Multi-stage Build Layers:
+Stage 1: 'dependencies' - npm ci (installs all deps for build)
+Stage 2: 'production-dependencies' - npm ci --omit=dev (pruned production dependencies)
+Stage 3: 'runtime' - copies node_modules from stage 2, copies src/, sets chown node:node, drops root privileges
+
+CI/CD Publishing Configuration:
+In GitHub Actions CI (.github/workflows/ci.yml), the build job builds and pushes to GHCR:
+- Target Registry: ghcr.io/${{ github.repository }}
+- Tags:
+  * ghcr.io/<owner>/<repo>:sha-<git-sha>
+  * ghcr.io/<owner>/<repo>:vX.Y.Z (on git tags) or run-<run_number> (on main)
+  * ghcr.io/<owner>/<repo>:latest (on main)
+- Digest Output Step:
+  * Generates steps.build-and-push.outputs.digest
+  * Prints digest in $GITHUB_STEP_SUMMARY and job log
+================================================================================

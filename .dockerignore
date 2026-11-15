@@ -1,0 +1,17 @@
+node_modules
+.git
+.github
+.env
+.env.*
+!.env.example
+backups
+evidence
+docs
+tests
+coverage
+nginx/certs/*.crt
+nginx/certs/*.key
+*.md
+*.log
+.DS_Store
+Thumbs.db

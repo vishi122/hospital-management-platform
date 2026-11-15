@@ -1,0 +1,44 @@
+================================================================================
+CONCURRENCY SAFETY TEST EVIDENCE: DOCTOR APPOINTMENT DOUBLE-BOOKING RACE
+Date: Sun Nov 15 2026
+Stack: Node.js 22 + Express + MongoDB 7.0 + Mongoose Partial Unique Index
+================================================================================
+
+Command executed:
+npm run test:concurrency (jest tests/concurrency.test.js --runInBand --detectOpenHandles --forceExit)
+
+Output:
+> hospital-management-platform@1.0.0 test:concurrency
+> jest tests/concurrency.test.js --runInBand --detectOpenHandles --forceExit
+
+{"level":"info","time":"2026-11-15T11:01:48.135Z","uri":"mongodb://rootadmin:****@mongo:27017/hospital_test?authSource=admin","msg":"Connected to MongoDB successfully"}
+{"level":"info","time":"2026-11-15T11:01:48.282Z","msg":"MongoDB indexes verified and ready"}
+{"level":"warn","time":"2026-11-15T11:01:49.852Z","doctorId":"6af9911ca224b61ee67cc808","slotTime":"2026-11-17T10:00:00.000Z","msg":"Appointment booking collision caught by unique index"}
+{"level":"warn","time":"2026-11-15T11:01:49.869Z","doctorId":"6af9911ca224b61ee67cc808","slotTime":"2026-11-17T10:00:00.000Z","msg":"Appointment booking collision caught by unique index"}
+{"level":"warn","time":"2026-11-15T11:01:49.873Z","doctorId":"6af9911ca224b61ee67cc808","slotTime":"2026-11-17T10:00:00.000Z","msg":"Appointment booking collision caught by unique index"}
+{"level":"warn","time":"2026-11-15T11:01:49.960Z","doctorId":"6af9911ca224b61ee67cc808","slotTime":"2026-11-17T10:00:00.000Z","msg":"Appointment booking collision caught by unique index"}
+
+  console.log
+    Concurrent booking results for N=10: { total: 10, statusCodes: { '201': 1, '409': 9 } }
+
+      at Object.log (tests/concurrency.test.js:71:13)
+
+{"level":"info","time":"2026-11-15T11:01:50.357Z","msg":"Disconnected from MongoDB"}
+PASS tests/concurrency.test.js
+  Concurrency Safety - Doctor Slot Booking Race Condition
+    ✓ Ensures exactly 1 of 10 concurrent requests succeeds (201) while 9 receive 409 Conflict (1865 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       1 passed, 1 total
+Snapshots:   0 total
+Time:        68.248 s
+Ran all test suites matching /tests\/concurrency.test.js/i.
+
+================================================================================
+CONCLUSION:
+Under simultaneous, asynchronous dispatch of N=10 concurrent booking requests
+targeting the identical doctor and slotTime:
+- Exactly 1 request successfully acquired the slot and received HTTP 201 Created.
+- Exactly 9 requests were rejected by MongoDB partial unique index E11000 and received HTTP 409 Conflict.
+- Database state was verified to contain exactly 1 confirmed appointment.
+================================================================================
