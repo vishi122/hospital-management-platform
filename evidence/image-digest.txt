@@ -6,6 +6,13 @@ Date: Sun Nov 15 2026
 Image Name: hospital-platform-app:latest
 Docker Target: production
 
+Published GHCR Artifact (Live CI/CD Build):
+- GitHub Actions Pipeline Run: https://github.com/vishi122/hospital-management-platform/actions/runs/43736904732
+- Image Repository: ghcr.io/vishi122/hospital-management-platform:v1.0.0
+- Remote Immutable Digest: sha256:b8f2089851d1d2ed20557747e17d8d6cf3f0dabc7c2139ad9224a0807d8626e4
+- Demo Type: local-only (no live URL)
+
+Local Build Verification:
 REPOSITORY              TAG       DIGEST                                                                    IMAGE ID       CREATED          SIZE
 hospital-platform-app   latest    sha256:1d553c24711877da0b698059877bbd88d6aecca1762e6f2881c44740793e747e   1d553c247118   22 minutes ago   263MB
 

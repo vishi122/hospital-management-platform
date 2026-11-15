@@ -4,6 +4,16 @@ This script is structured for an interview, technical evaluation, or project pre
 
 ---
 
+## Submission Evidence Reference
+
+- **Pipeline Run:** [https://github.com/vishi122/hospital-management-platform/actions/runs/43736904732](https://github.com/vishi122/hospital-management-platform/actions/runs/43736904732)
+- **Container Image:** `ghcr.io/vishi122/hospital-management-platform:v1.0.0`
+- **Image Digest:** `sha256:b8f2089851d1d2ed20557747e17d8d6cf3f0dabc7c2139ad9224a0807d8626e4`
+- **Demo Video:** `<add after recording>`
+- **Demo Type:** local-only (no live URL)
+
+---
+
 ## Demo Timeline Overview
 
 - **Minute 0:00 – 1:00:** Architecture, CI/CD Pipeline & Zero-Trust Secrets
